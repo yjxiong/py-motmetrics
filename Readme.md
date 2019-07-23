@@ -69,6 +69,8 @@ idtp|ID measures: Number of true positives matches after global min-cost matchin
 idp|ID measures: global min-cost precision.
 idr|ID measures: global min-cost recall.
 idf1|ID measures: global min-cost F1 score.
+CROSS|Number of crossovers during tracking, i.e. if a hypothesis firstly tracks object A then switches to track object B
+SWAP|Number of swaps during tracking, i.e. if a hypothesis firstly tracks object A then switches to track object B, while the object has previously been tracked by another hypothesis
 
 <a name="MOTChallengeCompatibility"></a>
 ### MOTChallenge compatibility
