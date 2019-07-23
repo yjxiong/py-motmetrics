@@ -87,7 +87,8 @@ class MOTAccumulator(object):
         self._events = []
         self._indices = []
         #self.events = MOTAccumulator.new_event_dataframe()
-        self.m = {} # Pairings up to current timestamp  
+        self.m = {} # Pairings up to current timestamp
+        self.inv_m = {}
         self.last_occurrence = {} # Tracks most recent occurance of object
         self.dirty_events = True
         self.cached_events_df = None
@@ -183,6 +184,7 @@ class MOTAccumulator(object):
                     oids[i] = ma.masked
                     hids[j] = ma.masked
                     self.m[oids.data[i]] = hids.data[j]
+                    self.inv_m[oids.data[i]] = hids.data[j]
                     
                     self._indices.append((frameid, next(eid)))
                     self._events.append(['MATCH', oids.data[i], hids.data[j], dists[i, j]])
@@ -202,12 +204,35 @@ class MOTAccumulator(object):
                 is_switch = o in self.m and \
                             self.m[o] != h and \
                             abs(frameid - self.last_occurrence[o]) <= self.max_switch_time
-                cat = 'SWITCH' if is_switch else 'MATCH'
+
+                is_cross = h in self.inv_m and self.inv_m[h] != o
+                is_break = o in self.m and self.m[o] != h
+
+                is_swap = is_cross and is_break
+
+                if is_switch:
+                    cat = 'SWITCH'
+                else:
+                    cat = 'MATCH'
                 self._indices.append((frameid, next(eid)))
                 self._events.append([cat, oids.data[i], hids.data[j], dists[i, j]])
+
+                if is_cross:
+                    self._indices.append((frameid, next(eid)))
+                    self._events.append(["CROSS", oids.data[i], hids.data[j], dists[i, j]])
+
+                if is_break:
+                    self._indices.append((frameid, next(eid)))
+                    self._events.append(["BREAK", oids.data[i], hids.data[j], dists[i, j]])
+
+                if is_swap:
+                    self._indices.append((frameid, next(eid)))
+                    self._events.append(["SWAP", oids.data[i], hids.data[j], dists[i, j]])
+
                 oids[i] = ma.masked
                 hids[j] = ma.masked
                 self.m[o] = h
+                self.inv_m[h] = o
 
         # 3. All remaining objects are missed
         for o in oids[~oids.mask]:
@@ -230,6 +255,7 @@ class MOTAccumulator(object):
         if self.dirty_events:
             self.cached_events_df = MOTAccumulator.new_event_dataframe_with_data(self._indices, self._events)
             self.dirty_events = False
+
         return self.cached_events_df
     
     @property
@@ -268,7 +294,7 @@ class MOTAccumulator(object):
 
         tevents = list(zip(*events))
 
-        raw_type = pd.Categorical(tevents[0], categories=['RAW', 'FP', 'MISS', 'SWITCH', 'MATCH'], ordered=False)
+        raw_type = pd.Categorical(tevents[0], categories=['RAW', 'FP', 'MISS', 'SWITCH', 'MATCH', 'BREAK', 'CROSS'], ordered=False)
         series = [
             pd.Series(raw_type, name='Type'),
             pd.Series(tevents[1], dtype=object, name='OId'),
