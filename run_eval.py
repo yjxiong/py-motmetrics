@@ -17,7 +17,7 @@ output_data = pd.DataFrame(np.load(args.output_file)[:, :6], columns=columns)
 gt_data = pd.DataFrame(np.load(args.gt_file)[:, :6], columns=columns)
 
 # Create an accumulator that will be updated during each frame
-acc = mm.MOTAccumulator(auto_id=True)
+acc = mm.MOTAccumulator(auto_id=False)
 
 max_frame = int(max(max(output_data['FrameID']), max(gt_data['FrameID'])))
 print("{} frames in total".format(max_frame))
@@ -33,7 +33,7 @@ for i in range(max_frame + 1):
     frame_output_ids = frame_output[id_column].values
 
     dist_mat = mm.distances.iou_matrix(frame_gt_bboxes, frame_output_bboxes, max_iou=0.5)
-    acc.update(frame_gt_ids, frame_output_ids, dist_mat)
+    acc.update(frame_gt_ids, frame_output_ids, dist_mat, i)
 
 
 mh = mm.metrics.create()

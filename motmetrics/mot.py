@@ -184,7 +184,7 @@ class MOTAccumulator(object):
                     oids[i] = ma.masked
                     hids[j] = ma.masked
                     self.m[oids.data[i]] = hids.data[j]
-                    self.inv_m[oids.data[i]] = hids.data[j]
+                    self.inv_m[hids.data[j]] = oids.data[i]
                     
                     self._indices.append((frameid, next(eid)))
                     self._events.append(['MATCH', oids.data[i], hids.data[j], dists[i, j]])
